@@ -1,0 +1,29 @@
+Metadata-Version: 2.4
+Name: agentshield
+Version: 0.1.0
+Summary: Runtime authorization gateway for AI agents — pre-execution semantic authorization at the tool-call layer.
+Author: AgentShield Team
+License: MIT
+Requires-Python: >=3.10
+Description-Content-Type: text/markdown
+Requires-Dist: pydantic<3.0,>=2.0
+Requires-Dist: pyyaml>=6.0
+Requires-Dist: python-dateutil>=2.8
+Requires-Dist: openai>=1.30
+Requires-Dist: anthropic>=0.30
+Provides-Extra: dashboard
+Requires-Dist: streamlit>=1.35; extra == "dashboard"
+Requires-Dist: streamlit-autorefresh>=1.0.1; extra == "dashboard"
+Requires-Dist: pandas>=2.0; extra == "dashboard"
+Provides-Extra: langchain
+Requires-Dist: langchain>=0.3; extra == "langchain"
+Requires-Dist: langchain-core>=0.3; extra == "langchain"
+Requires-Dist: langgraph>=0.2; extra == "langchain"
+Provides-Extra: autogen
+Requires-Dist: autogen-core>=0.4; extra == "autogen"
+Provides-Extra: crewai
+Requires-Dist: crewai>=1.14; extra == "crewai"
+Provides-Extra: dev
+Requires-Dist: pytest>=8.0; extra == "dev"
+Requires-Dist: pytest-asyncio>=0.23; extra == "dev"
+Requires-Dist: ruff>=0.4; extra == "dev"

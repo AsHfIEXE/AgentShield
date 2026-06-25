@@ -1,0 +1,26 @@
+version: "1.0"
+policy_id: "pii-protection"
+description: "Prevent accidental leakage of Personal Identifiable Information (PII) to outbound network calls."
+rules:
+  - id: "block-pii-exfil"
+    priority: 160
+    condition:
+      and:
+        - field: "tool_category"
+          operator: "in"
+          value: ["network", "email"]
+        - field: "tool_name"
+          operator: "matches"
+          value: "(?i)phone|ssn|social_security|address|password|secret|key|token|credential"
+    action: "BLOCK"
+  - id: "escalate-pii-data-query"
+    priority: 130
+    condition:
+      and:
+        - field: "tool_category"
+          operator: "eq"
+          value: "database"
+        - field: "tool_name"
+          operator: "matches"
+          value: "(?i)customer|user|profile|pii|ssn|dob|email|phone"
+    action: "ESCALATE"

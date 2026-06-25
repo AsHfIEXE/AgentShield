@@ -1,0 +1,60 @@
+version: "1.0"
+policy_id: "agentshield-default"
+rules:
+  - id: "block-high-network"
+    priority: 100
+    condition:
+      and:
+        - field: "risk_level"
+          operator: "eq"
+          value: "HIGH"
+        - field: "tool_category"
+          operator: "in"
+          value: ["network", "email", "database", "code"]
+    action: "BLOCK"
+  - id: "escalate-mcp-anomaly"
+    priority: 95
+    condition:
+      field: "attack_type"
+      operator: "eq"
+      value: "ASI07_INTER_AGENT_COMMS"
+    action: "ESCALATE"
+  - id: "escalate-uncertain-high"
+    priority: 90
+    condition:
+      and:
+        - field: "risk_level"
+          operator: "eq"
+          value: "HIGH"
+        - field: "confidence_score"
+          operator: "lt"
+          value: 0.8
+    action: "ESCALATE"
+  - id: "block-out-of-scope"
+    priority: 80
+    condition:
+      field: "tool_in_original_scope"
+      operator: "eq"
+      value: false
+    action: "BLOCK"
+  - id: "flag-repeated-tool"
+    priority: 70
+    condition:
+      field: "action_count"
+      operator: "gt"
+      value: 10
+    action: "ESCALATE"
+  - id: "log-medium"
+    priority: 50
+    condition:
+      field: "risk_level"
+      operator: "eq"
+      value: "MEDIUM"
+    action: "LOG_AND_ALLOW"
+  - id: "allow-low"
+    priority: 10
+    condition:
+      field: "risk_level"
+      operator: "eq"
+      value: "LOW"
+    action: "ALLOW"

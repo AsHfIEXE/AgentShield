@@ -1,0 +1,26 @@
+version: "1.0"
+policy_id: "financial-protection"
+description: "Rules to prevent unapproved outbound financial transactions or access to confidential billing/financial data."
+rules:
+  - id: "block-unauthorized-financial-transactions"
+    priority: 150
+    condition:
+      and:
+        - field: "tool_category"
+          operator: "in"
+          value: ["network", "email", "database"]
+        - field: "tool_name"
+          operator: "matches"
+          value: "(?i)wire|transfer|payment|invoice|billing|credit_card|charge"
+    action: "BLOCK"
+  - id: "escalate-financial-file-access"
+    priority: 140
+    condition:
+      and:
+        - field: "tool_category"
+          operator: "eq"
+          value: "filesystem"
+        - field: "tool_name"
+          operator: "matches"
+          value: "(?i)financial|billing|revenue|invoice|ledger|payroll|tax|payment"
+    action: "ESCALATE"

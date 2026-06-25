@@ -1,0 +1,26 @@
+version: "1.0"
+policy_id: "code-execution-controls"
+description: "Restrict dynamic code execution behaviors to local safe contexts."
+rules:
+  - id: "block-unapproved-commands"
+    priority: 170
+    condition:
+      and:
+        - field: "tool_category"
+          operator: "eq"
+          value: "code"
+        - field: "tool_name"
+          operator: "matches"
+          value: "(?i)sudo|root|rm|chmod|chown|wget|curl|nc|netcat|ssh"
+    action: "BLOCK"
+  - id: "escalate-dynamic-eval"
+    priority: 120
+    condition:
+      and:
+        - field: "tool_category"
+          operator: "eq"
+          value: "code"
+        - field: "risk_level"
+          operator: "eq"
+          value: "MEDIUM"
+    action: "ESCALATE"

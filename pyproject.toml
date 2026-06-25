@@ -1,0 +1,51 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "agentshield"
+version = "0.1.0"
+description = "Runtime authorization gateway for AI agents — pre-execution semantic authorization at the tool-call layer."
+readme = "README.md"
+requires-python = ">=3.10"
+license = {text = "MIT"}
+authors = [{name = "AgentShield Team"}]
+
+dependencies = [
+    "pydantic>=2.0,<3.0",
+    "pyyaml>=6.0",
+    "python-dateutil>=2.8",
+    "openai>=1.30",
+    "anthropic>=0.30",
+]
+
+[project.optional-dependencies]
+dashboard = [
+    "streamlit>=1.35",
+    "streamlit-autorefresh>=1.0.1",
+    "pandas>=2.0",
+]
+langchain = [
+    "langchain>=0.3",
+    "langchain-core>=0.3",
+    "langgraph>=0.2",
+]
+autogen = [
+    "autogen-core>=0.4",
+]
+crewai = [
+    "crewai>=1.14",
+]
+dev = [
+    "pytest>=8.0",
+    "pytest-asyncio>=0.23",
+    "ruff>=0.4",
+]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
