@@ -21,20 +21,49 @@ from agentshield.models import (
 # ── Compiled Patterns ────────────────────────────────────────────────────────
 
 TIER1_PATTERNS = {
-    "path_traversal": re.compile(r"(\.\./|/etc/passwd|/etc/shadow|~/\.ssh/|/root/)"),
+    # Path traversal and dangerous system paths
+    "path_traversal": re.compile(
+        r"(\.\./|/etc/passwd|/etc/shadow|~/\.ssh/|/root/)"
+    ),
+    # Code/command injection (Python, shell, OS)
     "code_injection": re.compile(
-        r"(subprocess\.|os\.system|eval\(|exec\(|__import__|shutil\.)"
+        r"(subprocess\.|os\.system|eval\(|exec\(|__import__|shutil\.|"
+        r"\$\([^)]+\)|`[^`]+`|\|\|[ \t]*(?:bash|sh|cmd)|&&[ \t]*(?:bash|sh|rm|curl|wget|nc)\b|"
+        r";\s*(?:rm|curl|wget|bash|sh|python|nc)\b)"
     ),
+    # Credentials: API keys, SSH keys, cloud tokens, JWT-like
     "credential_exposure": re.compile(
-        r"(api[_-]?key|secret[_-]?key|password|bearer\s+[a-zA-Z0-9]+|private[_-]?key|ssh[_-]?key)",
+        r"(api[_-]?key|secret[_-]?key|password|bearer\s+[a-zA-Z0-9]+|private[_-]?key|ssh[_-]?key|"
+        r"AKIA[0-9A-Z]{16}|sk-[a-zA-Z0-9]{20,}|ghp_[a-zA-Z0-9]{32,}|"
+        r"xox[bprs]-[0-9A-Za-z\-]+|eyJ[a-zA-Z0-9_-]+\.[a-zA-Z0-9_-]+\.[a-zA-Z0-9_-]+)",
         re.IGNORECASE,
     ),
+    # Known data exfiltration / OAST / interactsh domains
     "known_exfil_domains": re.compile(
-        r"(ngrok\.io|requestbin|webhook\.site|burpcollaborator|attacker\.com)",
+        r"(ngrok\.io|requestbin|webhook\.site|burpcollaborator|attacker\.com|"
+        r"interact\.sh|oast\.fun|oast\.pro|pipedream\.net|canarytokens\.com|"
+        r"hookbin\.com|beeceptor\.com|postb\.in|evil\.com)",
         re.IGNORECASE,
     ),
+    # Dangerous local filesystem paths
     "dangerous_paths": re.compile(
-        r"(/etc/|/root/|~/\.ssh/|/proc/|/sys/|\.\./)"
+        r"(/etc/|/root/|~/\.ssh/|/proc/|/sys/|/dev/|"
+        r"/var/run/docker\.sock|~/\.aws/credentials|~/\.config/gcloud|~/\.kube/config|\.\./)"
+    ),
+    # SSRF: cloud metadata endpoints + internal/private IP ranges
+    "ssrf_metadata": re.compile(
+        r"(169\.254\.169\.254|metadata\.google\.internal|169\.254\.170\.2|"
+        r"fd00:|::1[:/]|10\.\d{1,3}\.\d{1,3}\.\d{1,3}|"
+        r"172\.(1[6-9]|2\d|3[01])\.\d{1,3}\.\d{1,3}|192\.168\.\d{1,3}\.\d{1,3}|"
+        r"localhost[:/]|127\.\d+\.\d+\.\d+)"
+    ),
+    # Server-side template injection
+    "template_injection": re.compile(
+        r"(\{\{.*?\}\}|\$\{.*?\}|<%.*?%>|#\{.*?\}|@\{.*?\}|\[#.*?#\])"
+    ),
+    # Shell metacharacters appearing in non-code tool args
+    "shell_metacharacters": re.compile(
+        r"(?<![a-zA-Z0-9])([;&|`]|\$\(|\$\{|>\s*/[a-z]|>>?\s*/[a-z]|<\(|>\s*/tmp)"
     ),
 }
 
@@ -197,6 +226,39 @@ class Tier1Classifier:
                     attack_type=AttackType.ASI01_GOAL_HIJACK,
                     confidence_score=0.99,
                     reasoning=f"Network exfiltration domain '{matched_text}' detected in tool arguments.",
+                    recommended_action=ActionDecision.BLOCK,
+                    tier_used=ClassificationTier.TIER1_DETERMINISTIC,
+                )
+
+            # SSRF / cloud metadata endpoint access
+            if pat_name == "ssrf_metadata" and tool_category in ["network", "code", "system"]:
+                return ClassificationVerdict(
+                    risk_level=RiskLevel.HIGH,
+                    attack_type=AttackType.ASI02_TOOL_MISUSE,
+                    confidence_score=0.97,
+                    reasoning=f"SSRF/cloud metadata access attempt: '{matched_text}' detected in network call arguments.",
+                    recommended_action=ActionDecision.BLOCK,
+                    tier_used=ClassificationTier.TIER1_DETERMINISTIC,
+                )
+
+            # Template injection in any tool
+            if pat_name == "template_injection":
+                return ClassificationVerdict(
+                    risk_level=RiskLevel.HIGH,
+                    attack_type=AttackType.ASI05_CODE_EXECUTION,
+                    confidence_score=0.93,
+                    reasoning=f"Template injection pattern '{matched_text}' detected in tool arguments.",
+                    recommended_action=ActionDecision.BLOCK,
+                    tier_used=ClassificationTier.TIER1_DETERMINISTIC,
+                )
+
+            # Shell metacharacters in non-code tools
+            if pat_name == "shell_metacharacters" and tool_category not in ["code"]:
+                return ClassificationVerdict(
+                    risk_level=RiskLevel.HIGH,
+                    attack_type=AttackType.ASI05_CODE_EXECUTION,
+                    confidence_score=0.91,
+                    reasoning=f"Shell metacharacter '{matched_text}' detected in non-code tool '{tool_call.tool_name}' arguments.",
                     recommended_action=ActionDecision.BLOCK,
                     tier_used=ClassificationTier.TIER1_DETERMINISTIC,
                 )

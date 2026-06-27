@@ -6,6 +6,7 @@ Bridges asynchronous tool interception with synchronous/threaded dashboard appro
 from __future__ import annotations
 
 import asyncio
+import os
 from datetime import datetime, timezone
 import threading
 from typing import Any, Optional
@@ -24,7 +25,7 @@ class HumanApprovalQueue:
         self,
         request: ToolCallRequest,
         verdict: ClassificationVerdict,
-        timeout: float = 30.0,
+        timeout: float = float(os.environ.get("AGENTSHIELD_APPROVAL_TIMEOUT", "30")),
     ) -> bool:
         """Hold the calling thread/coroutine until approval decision is received.
 

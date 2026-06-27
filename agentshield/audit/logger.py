@@ -36,8 +36,8 @@ class AuditLog:
         self.syslog_logger.setLevel(logging.INFO)
         self.syslog_logger.handlers.clear()
 
-        syslog_host = os.environ.get("AGENTSHEILD_SYSLOG_HOST")
-        syslog_port = int(os.environ.get("AGENTSHEILD_SYSLOG_PORT", "514"))
+        syslog_host = os.environ.get("AGENTSHIELD_SYSLOG_HOST")
+        syslog_port = int(os.environ.get("AGENTSHIELD_SYSLOG_PORT", "514"))
 
         if syslog_host:
             try:

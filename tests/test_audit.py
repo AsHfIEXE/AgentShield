@@ -145,7 +145,10 @@ def test_json_export_import(sample_data: tuple[ToolCallRequest, ClassificationVe
     logger = AuditLog(session_id="session-1")
     logger.log(req, verdict, result)
 
-    temp_path = "/home/ashfiexe/agentshield/tests/temp_audit.json"
+    import tempfile
+    with tempfile.NamedTemporaryFile(suffix=".json", delete=False) as tf:
+        temp_path = tf.name
+
     try:
         logger.to_json(temp_path)
         assert os.path.exists(temp_path)

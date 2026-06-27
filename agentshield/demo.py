@@ -6,7 +6,7 @@ Provides an execution harness to run attack/benign scenarios through AgentShield
 from __future__ import annotations
 
 import asyncio
-from typing import Optional
+from typing import Any, Optional
 
 from agentshield.audit.logger import AuditLog
 from agentshield.classifier.engine import ClassificationEngine

@@ -11,6 +11,13 @@ import asyncio
 import os
 import sys
 
+# Load .env before importing anything else that reads env vars
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    pass
+
 # Ensure package is on the path
 sys.path.insert(0, os.path.abspath(os.path.dirname(__file__)))
 

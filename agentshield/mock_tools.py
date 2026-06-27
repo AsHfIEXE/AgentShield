@@ -1,14 +1,19 @@
 """
 Mock tool registry for offline testing and demo verification.
 Simulates tool outputs without side-effects.
+
+For real-world integrations the actual tool registry comes from the agent framework
+(LangChain, AutoGen, CrewAI). The helpers here are used by tests, the demo
+runner, and the policy engine's category resolver.
 """
 
 from __future__ import annotations
 
+import re
 from typing import Any, Callable
 
-# Maps tool names to categories
-TOOL_CATEGORIES = {
+# ── Exact-match category map (high-confidence, fast path) ──────────────────
+TOOL_CATEGORIES: dict[str, str] = {
     "read_file": "filesystem",
     "write_file": "filesystem",
     "delete_file": "filesystem",
@@ -16,19 +21,87 @@ TOOL_CATEGORIES = {
     "compress": "filesystem",
     "http_request": "network",
     "get_status": "network",
+    "web_search": "network",
+    "fetch_url": "network",
+    "curl": "network",
     "send_email": "email",
+    "send_message": "email",
     "execute_code": "code",
-    "execute_tool": "system",  # MCP server action
+    "run_python": "code",
+    "run_shell": "code",
+    "bash": "code",
+    "execute_tool": "system",
     "create_calendar_event": "calendar",
     "update_user_profile": "system",
     "list_orders": "database",
     "get_order": "database",
+    "sql_query": "database",
+    "db_query": "database",
 }
+
+# ── Fuzzy-match rules (keyword substrings → category) ──────────────────────
+# Applied left-to-right; first match wins.
+_FUZZY_RULES: list[tuple[str, str]] = [
+    # filesystem
+    ("read_file", "filesystem"), ("write_file", "filesystem"),
+    ("delete_file", "filesystem"), ("list_file", "filesystem"),
+    ("file_read", "filesystem"), ("file_write", "filesystem"),
+    ("file_delete", "filesystem"), ("file_list", "filesystem"),
+    ("open_file", "filesystem"), ("save_file", "filesystem"),
+    ("compress", "filesystem"), ("extract", "filesystem"),
+    ("mkdir", "filesystem"), ("rmdir", "filesystem"),
+    ("move_file", "filesystem"), ("copy_file", "filesystem"),
+    # network
+    ("http", "network"), ("https", "network"), ("fetch", "network"),
+    ("request", "network"), ("get_url", "network"), ("post_url", "network"),
+    ("curl", "network"), ("wget", "network"), ("web_search", "network"),
+    ("download", "network"), ("upload", "network"), ("socket", "network"),
+    # email
+    ("email", "email"), ("mail", "email"), ("smtp", "email"),
+    ("send_message", "email"), ("slack_message", "email"),
+    ("teams_message", "email"), ("notify", "email"),
+    # code / execution
+    ("exec", "code"), ("run_", "code"), ("_run", "code"),
+    ("bash", "code"), ("shell", "code"), ("python", "code"),
+    ("compile", "code"), ("eval", "code"), ("script", "code"),
+    # database
+    ("sql", "database"), ("db_", "database"), ("_db", "database"),
+    ("query", "database"), ("insert", "database"), ("update_record", "database"),
+    ("delete_record", "database"), ("mongo", "database"), ("redis", "database"),
+    # system / agent management
+    ("mcp", "system"), ("register_tool", "system"), ("tool_use", "system"),
+    ("agent_call", "system"), ("spawn_", "system"), ("sub_agent", "system"),
+    ("spawn_agent", "system"), ("tool_registration", "system"),
+    ("update_profile", "system"), ("set_config", "system"),
+    # calendar
+    ("calendar", "calendar"), ("schedule", "calendar"),
+    ("create_event", "calendar"), ("update_event", "calendar"),
+]
 
 
 def get_tool_category(tool_name: str) -> str:
-    """Resolve tool category with unknown fallback."""
-    return TOOL_CATEGORIES.get(tool_name, "unknown")
+    """Resolve tool category with fuzzy matching for real-world tool names.
+
+    Resolution order:
+    1. Exact match in TOOL_CATEGORIES
+    2. Fuzzy substring match via _FUZZY_RULES
+    3. Falls back to "unknown"
+    """
+    if not tool_name:
+        return "unknown"
+
+    # 1. Exact match (fast path)
+    exact = TOOL_CATEGORIES.get(tool_name)
+    if exact:
+        return exact
+
+    # 2. Fuzzy keyword match (case-insensitive)
+    lower = tool_name.lower()
+    for keyword, category in _FUZZY_RULES:
+        if keyword in lower:
+            return category
+
+    return "unknown"
 
 
 # Mock implementation functions
